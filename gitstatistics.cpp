@@ -40,35 +40,6 @@ QVector<GitStatistics::Data> GitStatistics::getStatData()
     return statData;
 }
 
-QVector<GitStatistics::Data> GitStatistics::getYearlyData(int year)
-{
-    QVector<Data> yearlyData;
-    int64_t beginTime = QDateTime(QDate(year, 1, 1), QTime(0,0,0)).toSecsSinceEpoch();
-    int64_t endTime = QDateTime(QDate(year + 1, 1, 1), QTime(0,0,0)).toSecsSinceEpoch() - 1;
-    for (int i = 0; i < statData.size(); ++i) {
-        if(statData[i].epoch >= beginTime && statData[i].epoch <= endTime){
-            yearlyData.push_back(statData[i]);
-        }
-    }
-    return yearlyData;
-}
-
-QVector<GitStatistics::Data> GitStatistics::getMontlyData(int year, int month)
-{
-    QVector<Data> montlyData;
-    int64_t beginTime = QDateTime(QDate(year, month, 1), QTime(0,0,0)).toSecsSinceEpoch();
-    int64_t endTime;
-
-    if (month == 12)
-        endTime = QDateTime(QDate(year + 1, 1, 1), QTime(0,0,0)).toSecsSinceEpoch()-1;
-    else
-        endTime = QDateTime(QDate(year, month + 1, 1), QTime(0,0,0)).toSecsSinceEpoch()-1;
-    for (int i = 0; i < statData.size(); ++i) {
-        if (statData[i].epoch >= beginTime && statData[i].epoch <= endTime)
-            montlyData.push_back(statData[i]);
-    }
-    return montlyData;
-}
 QVector<GitStatistics::Data> GitStatistics::getPeriodlyData(QDate beginTime, QDate endTime)
 {
     QVector<Data> periodlyData;
@@ -93,15 +64,17 @@ QStringList GitStatistics::getAllYears()
     }
     return map.keys();
 }
+
 int64_t GitStatistics::getBeginTime()
 {
-    int64_t temp;
+    int64_t temp = statData[0].epoch;
     for (int i = 0; i < statData.size(); ++i) {
         if (statData[i].epoch < temp)
             temp = statData[i].epoch;
     }
     return temp;
 }
+
 int64_t GitStatistics::getEndTime()
 {
     int64_t temp = statData[0].epoch;
@@ -120,7 +93,6 @@ GitStatistics::statisticData GitStatistics::calculateDay(int64_t beginTime, int6
     int weekendFreeDays = 0;
     int monday = 0;
     int friday = 0;
-
     QVector<Data> periodlyData = getPeriodlyData(QDateTime::fromSecsSinceEpoch(beginTime).date(), QDateTime::fromSecsSinceEpoch(endTime).date());
     dailyData.commit = periodlyData.size();
 
@@ -137,14 +109,14 @@ GitStatistics::statisticData GitStatistics::calculateDay(int64_t beginTime, int6
         }
     }
     outsideWeekendFreeDays = freeDay - weekendFreeDays;
-
-    for (int64_t i = beginTime; i < endTime; i = i + 86400) {
-        QDate date = QDateTime::fromSecsSinceEpoch(i).date();
-        QStringList pieces = date.toString().split( " " );
-        if (pieces[0] == "Cmt" || pieces[0] == "Paz"){
-            outsideWeekend--;
-        }
-    }
+	if(endTime > beginTime)
+		for (int64_t i = beginTime; i < endTime; i = i + 86400) {
+			QDate date = QDateTime::fromSecsSinceEpoch(i).date();
+			QStringList pieces = date.toString().split( " " );
+			if (pieces[0] == "Cmt" || pieces[0] == "Paz"){
+				outsideWeekend--;
+			}
+		}
 
     dailyData.commit = periodlyData.size();
     dailyData.day = day;

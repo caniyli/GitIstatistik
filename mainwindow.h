@@ -5,13 +5,6 @@
 #include "donutbreakdownchart.h"
 #include "drawchart.h"
 
-#include <QWidget>
-#include <QString>
-#include <QPushButton>
-#include <QDebug>
-#include <QComboBox>
-#include <QDateEdit>
-
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -48,18 +41,22 @@ private slots:
 
 	void on_radioButton_clicked();
 
+	void on_pbFilePath_clicked();
+
+	void on_rbCompare_clicked();
+	
+	void on_cbFileName_2_currentIndexChanged(const QString &arg1);
+	
 private:
 	Ui::MainWindow *ui;
-	QString getMonthName(int monthNumber);
-	int getMonthNumber(QString monthName);
 	void updateInfoFrame(int64_t beginTime, int64_t endTime);
-	GitStatistics *gs;
+	void updateInfoFrame_2(int64_t beginTime, int64_t endTime);
+	QMap<QString, GitStatistics *> gsMap;
 	QComboBox *yearCombo;
 	QComboBox *monthCombo;
 	QDateEdit *startTime;
 	QDateEdit *endTime;
 	QString chosen;
-	QGridLayout *cchartL;
 	QLabel *labelFileName;
 	QLabel *labelCount;
 	QLabel *labelMean;
@@ -68,18 +65,31 @@ private:
 	QLabel *labelWeakDaysFree;
 	QLabel *labelMonday;
 	QLabel *labelFriday;
+	QLabel *labelFileName_2;
+	QLabel *labelCount_2;
+	QLabel *labelMean_2;
+	QLabel *labelWeekDayMean_2;
+	QLabel *labelFreeDays_2;
+	QLabel *labelWeakDaysFree_2;
+	QLabel *labelMonday_2;
+	QLabel *labelFriday_2;
 	QCalendarWidget *calendar;
-	int graphicCounter = 0;
 	void createCalendar();
 	void createInfoColor();
 	void createFrameDate();
 	void createInfoLabels();
+	void createInfoLabels_2();
 	void setChartDatas(QString chosen, QVector<GitStatistics::Data> datas);
 	void clearFrame(QWidget *widget);
 	void fillCalendar();
 	QString printTool(QDate date);
 	QMap<int64_t, int> setLineSeries();
 	void drawLineChart();
-	void updateLineChart();
+	QDir directory;
+	void updateMonthCombo();
+	QMap<QString, QGridLayout *> mapLayout;
+	QMap<QString, QFrame *> mapFrame;
+	QMap<QString, int> index;
+	QMap<QString, int> graphicCounter;
 };
 #endif // MAINWINDOW_H

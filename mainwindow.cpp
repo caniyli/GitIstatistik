@@ -6,40 +6,67 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
 	ui->setupUi(this);
-	cchartL = new QGridLayout();
-	ui->chartFrame->setLayout(cchartL);
 	ui->frameDate->hide();
-
 	createFrameDate();
-	createCalendar();
 	createInfoColor();
 	createInfoLabels();
-	QDir directory ( "/home/mert/projects/projects/build-DonutChart-Desktop-Debug");
+	createInfoLabels_2();
+	ui->cbFileName_2->hide();
+	ui->infoFrame_2->hide();
 	QStringList texts = directory.entryList(QStringList() << "*.txt" << "*.txt",QDir::Files);
 	ui->cbFileName->addItems(texts);
-	ui->stackedWidget->setCurrentIndex(0);
+	createCalendar();
+	connect(startTime, &QDateEdit::dateChanged, this, &MainWindow::startTime_dateChanged);
+	connect(endTime, &QDateEdit::dateChanged, this, &MainWindow::endTime_dateChanged);
+	updateMonthCombo();
+	connect(yearCombo, &QComboBox::currentTextChanged, this, &MainWindow::updateMonthCombo);
 }
 
 void MainWindow::on_buttonDraw_clicked()
 {
 	if (chosen == "year"){
-		setChartDatas(chosen, gs->getYearlyData(yearCombo->currentText().toInt()));
+	QString date_string_on_db = yearCombo->currentText();
+	QDate Date = QDate::fromString(date_string_on_db,"yyyy");
+		setChartDatas(chosen, gsMap[ui->cbFileName->currentText()]->getPeriodlyData(Date, Date.addYears(1)));
 	}else if (chosen == "month"){
+	QString date_string_on_db = monthCombo->currentText() + "/" + yearCombo->currentText();
+	QDate Date = QDate::fromString(date_string_on_db,"MMM/yyyy");
 		setChartDatas(chosen + "/" +monthCombo->currentText(),
-					gs->getMontlyData(yearCombo->currentText().toInt(), getMonthNumber(monthCombo->currentText())));
+								gsMap[ui->cbFileName->currentText()]->getPeriodlyData(Date, Date.addMonths(1)));
 	}else if (chosen == "allyear"){
-		QStringList allYear = gs->getAllYears();
+		QStringList allYear = gsMap[ui->cbFileName->currentText()]->getAllYears();
 		for (int i = 0; i <allYear.size() ; ++i) {
-			setChartDatas(chosen, gs->getYearlyData(allYear[i].toInt()));
+			QDate Date = QDate::fromString(allYear[i],"yyyy");
+			setChartDatas(chosen, gsMap[ui->cbFileName->currentText()]->getPeriodlyData(Date, Date.addYears(1)));
 		}
 	}else if (chosen == "allmonth"){
-		for (int i = 0; i < 12 ; ++i)
-			if (!gs->getMontlyData(yearCombo->currentText().toInt(), i + 1).isEmpty()){
-				setChartDatas(chosen + "/" +getMonthName(i + 1), gs->getMontlyData(yearCombo->currentText().toInt(), i + 1));
-			}
-	}else if(chosen == "lineChart")
+		for (int i = 0; i < monthCombo->count(); ++i){
+			QString date_string_on_db = monthCombo->itemText(i) + "/" + yearCombo->currentText();
+			QDate Date = QDate::fromString(date_string_on_db,"MMM/yyyy");
+			setChartDatas(chosen + "/" + monthCombo->itemText(i), 
+							gsMap[ui->cbFileName->currentText()]->getPeriodlyData(Date, Date.addMonths(1)));
+		}
+	}else if (chosen == "lineChart")
 	{
 		drawLineChart();
+	}else if (chosen == "compare"){
+		QStringList allYear_1 = gsMap[ui->cbFileName->currentText()]->getAllYears();
+		QStringList allYear_2 = gsMap[ui->cbFileName_2->currentText()]->getAllYears();
+		if (allYear_1.size() >= allYear_2.size()) {
+			for (int i = 0; i <allYear_1.size(); ++i) {
+				QDate Date = QDate::fromString(allYear_1[i],"yyyy");
+				setChartDatas(chosen, gsMap[ui->cbFileName->currentText()]->getPeriodlyData(Date, Date.addYears(1)));
+				setChartDatas(chosen, gsMap[ui->cbFileName_2->currentText()]->getPeriodlyData(Date, Date.addYears(1)));
+			}
+		}else {
+			for (int i = 0; i <allYear_2.size(); ++i) {
+				QDate Date = QDate::fromString(allYear_2[i],"yyyy");
+				setChartDatas(chosen, gsMap[ui->cbFileName->currentText()]->getPeriodlyData(Date, Date.addYears(1)));
+				setChartDatas(chosen, gsMap[ui->cbFileName_2->currentText()]->getPeriodlyData(Date, Date.addYears(1)));
+			}
+		ui->infoFrame_2->show();
+		updateInfoFrame_2(gsMap[ui->cbFileName_2->currentText()]->getBeginTime(), gsMap[ui->cbFileName_2->currentText()]->getEndTime()+24 * 60 * 60);
+		}
 	}
 }
 
@@ -50,64 +77,74 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_rbYear_clicked()
 {
-	ui->stackedWidget->setCurrentIndex(0);
+	ui->stackedWidget->setCurrentIndex(index[ui->cbFileName->currentText()]);
 	ui->frameDate->show();
+	ui->infoFrame_2->hide();
 	yearCombo->show();
 	monthCombo->hide();
 	startTime->hide();
 	endTime->hide();
+	ui->cbFileName_2->hide();
 	this->chosen = "year";
 }
 
 void MainWindow::on_rbMonth_clicked()
 {
-	ui->stackedWidget->setCurrentIndex(0);
+	ui->stackedWidget->setCurrentIndex(index[ui->cbFileName->currentText()]);
 	ui->frameDate->show();
+	ui->infoFrame_2->hide();
 	startTime->hide();
 	endTime->hide();
 	yearCombo->show();
 	monthCombo->show();
+	ui->cbFileName_2->hide();
 	this->chosen = "month";
 }
 
 void MainWindow::on_rbPeriod_clicked()
 {
-	ui->stackedWidget->setCurrentIndex(1);
+	ui->stackedWidget->setCurrentIndex(0);
 	fillCalendar();
 	ui->frameDate->show();
+	ui->infoFrame_2->hide();
 	startTime->show();
 	endTime->show();
 	yearCombo->hide();
 	monthCombo->hide();
+	ui->cbFileName_2->hide();
 }
 
 void MainWindow::on_buttonDelete_clicked()
 {
-	clearFrame(ui->chartFrame);
-	graphicCounter = 0;
+	clearFrame(mapFrame[ui->cbFileName->currentText()]);
+	graphicCounter[ui->cbFileName->currentText()] = 0;
 }
 
 void MainWindow::on_rbAllYear_clicked()
 {
-	ui->stackedWidget->setCurrentIndex(0);
+	ui->stackedWidget->setCurrentIndex(index[ui->cbFileName->currentText()]);
 	ui->frameDate->hide();
+	ui->infoFrame_2->hide();
+	ui->cbFileName_2->hide();
 	this->chosen = "allyear";
 }
 
 void MainWindow::on_rbAllMonth_clicked()
 {
-	ui->stackedWidget->setCurrentIndex(0);
+	ui->stackedWidget->setCurrentIndex(index[ui->cbFileName->currentText()]);
 	ui->frameDate->show();
+	ui->infoFrame_2->hide();
 	yearCombo->show();
 	monthCombo->hide();
 	startTime->hide();
 	endTime->hide();
+	ui->cbFileName_2->hide();
 	this->chosen = "allmonth";
 }
 
 void MainWindow::updateInfoFrame(int64_t beginTime, int64_t endTime)
 {
-	GitStatistics::statisticData dailyData = gs->calculateDay(beginTime, endTime);
+	GitStatistics::statisticData dailyData = gsMap[ui->cbFileName->currentText()]->calculateDay(beginTime, endTime + (24 * 60 * 60));
 	labelFileName->setText(ui->cbFileName->currentText());
 	labelCount->setText("Commit Sayısı:\n" + QString::number(dailyData.commit));
 	labelMean->setText("Günlük Commit Ortalaması:\n" + QString::number((float) dailyData.commit / (float) dailyData.day));
@@ -116,17 +153,47 @@ void MainWindow::updateInfoFrame(int64_t beginTime, int64_t endTime)
 	labelWeakDaysFree->setText("Haftaiçi Commit Atılmamış Gün Sayısı:\n" + QString::number(dailyData.outsideWeekendFreeDays));
 	labelMonday->setText("Pazartesi Atılan Commit Sayısı:\n" + QString::number(dailyData.monday));
 	labelFriday->setText("Cuma Atılan Commit Sayısı:\n" + QString::number(dailyData.friday));
-
 }
 
+void MainWindow::updateInfoFrame_2(int64_t beginTime, int64_t endTime)
+{
+	GitStatistics::statisticData dailyData = gsMap[ui->cbFileName_2->currentText()]->calculateDay(beginTime, endTime + (24 * 60 * 60));
+	labelFileName_2->setText(ui->cbFileName_2->currentText());
+	labelCount_2->setText("Commit Sayısı:\n" + QString::number(dailyData.commit));
+	labelMean_2->setText("Günlük Commit Ortalaması:\n" + QString::number((float) dailyData.commit / (float) dailyData.day));
+	labelWeekDayMean_2->setText("Haftaiçi Commit Ortalaması:\n" + QString::number((float) dailyData.commit / (float) dailyData.outsideWeekend));
+	labelFreeDays_2->setText("Commit Atılmamış Gün Sayısı:\n" + QString::number(dailyData.freeDays));
+	labelWeakDaysFree_2->setText("Haftaiçi Commit Atılmamış Gün:\n" + QString::number(dailyData.outsideWeekendFreeDays));
+	labelMonday_2->setText("Pazartesi Atılan Commit Sayısı:\n" + QString::number(dailyData.monday));
+	labelFriday_2->setText("Cuma Atılan Commit Sayısı:\n" + QString::number(dailyData.friday));
+}
 void MainWindow::on_cbFileName_currentIndexChanged(const QString &arg1)
 {
-	gs = new GitStatistics(arg1);
-	endTime->setDate(QDateTime::fromSecsSinceEpoch(gs->getEndTime()).date());
-	startTime->setDate(QDateTime::fromSecsSinceEpoch(gs->getBeginTime()).date());
-	yearCombo->clear();
-	yearCombo->addItems(gs->getAllYears());
-	drawLineChart();
+	if (ui->cbFileName->count() != 0) {
+		if (gsMap.count(arg1) == 0){
+			gsMap[arg1] = new GitStatistics(directory.absolutePath() + "/" + arg1);
+			QWidget *firstPageWidget = new QWidget;
+			firstPageWidget->setLayout(new QVBoxLayout());
+			QScrollArea *area = new QScrollArea();
+			firstPageWidget->layout()->addWidget(area);
+			QFrame *frame = new QFrame;
+			frame->setBackgroundRole(QPalette::Dark);
+			mapFrame[arg1] = frame;
+			QGridLayout *layout = new QGridLayout;
+			frame->setLayout(layout);
+			area->setWidget(frame);
+			area->setWidgetResizable(true);
+			ui->stackedWidget->insertWidget(mapLayout.size()+2,firstPageWidget);
+			mapLayout[arg1] = layout;
+			index[arg1] = mapLayout.size() + 1;
+		}
+		ui->stackedWidget->setCurrentIndex(index[arg1]);
+		endTime->setDate(QDateTime::fromSecsSinceEpoch(gsMap[arg1]->getEndTime()).date());
+		startTime->setDate(QDateTime::fromSecsSinceEpoch(gsMap[arg1]->getBeginTime()).date());
+		yearCombo->clear();
+		yearCombo->addItems(gsMap[arg1]->getAllYears());
+		updateInfoFrame(QDateTime(startTime->date(), QTime(0,0,0)).toSecsSinceEpoch(),QDateTime(endTime->date(), QTime(0,0,0)).toSecsSinceEpoch());
+	}
 }
 
 void MainWindow::createCalendar()
@@ -134,17 +201,17 @@ void MainWindow::createCalendar()
 	calendar = new QCalendarWidget;
 	ui->frameCalendarView->layout()->addWidget(calendar);
 	calendar->setGridVisible(true);
-	connect(startTime, &QDateEdit::dateChanged, this, &MainWindow::startTime_dateChanged);
-	connect(endTime, &QDateEdit::dateChanged, this, &MainWindow::endTime_dateChanged);
+	calendar->setMinimumDate(QDateTime::fromSecsSinceEpoch(gsMap[ui->cbFileName->currentText()]->getBeginTime()).date());
+	calendar->setMaximumDate(QDateTime::fromSecsSinceEpoch(gsMap[ui->cbFileName->currentText()]->getEndTime()).date());
 }
 
 void MainWindow::fillCalendar()
 {
-	QMap<QString, int> dailyData = gs->calculateDay(QDateTime(startTime->date(), QTime(0,0,0)).toSecsSinceEpoch(),
-													QDateTime(endTime->date(), QTime(0,0,0)).toSecsSinceEpoch()+24*60*60).dailyCommit;
+	QMap<QString, int> dailyData = gsMap[ui->cbFileName->currentText()]->calculateDay(QDateTime(startTime->date(), QTime(0,0,0)).toSecsSinceEpoch(),
+													QDateTime(endTime->date().addDays(1), QTime(0,0,0)).toSecsSinceEpoch()).dailyCommit;
 	QTextCharFormat fmt;
-	calendar->setMinimumDate(QDateTime::fromSecsSinceEpoch(gs->getBeginTime()).date());
-	calendar->setMaximumDate(QDateTime::fromSecsSinceEpoch(gs->getEndTime()).date());
+	calendar->setMinimumDate(QDateTime::fromSecsSinceEpoch(gsMap[ui->cbFileName->currentText()]->getBeginTime()).date());
+	calendar->setMaximumDate(QDateTime::fromSecsSinceEpoch(gsMap[ui->cbFileName->currentText()]->getEndTime()).date());
 	for (int i = 0; i < dailyData.size(); ++i) {
 		if (dailyData[dailyData.keys()[i]] > 0 && dailyData[dailyData.keys()[i]] < 2)
 			fmt.setBackground(Qt::green);
@@ -152,7 +219,6 @@ void MainWindow::fillCalendar()
 			fmt.setBackground(Qt::yellow);
 		if (dailyData[dailyData.keys()[i]] >=5)
 			fmt.setBackground(Qt::red);
-		QStringList list;
 		fmt.setToolTip(printTool(QDate::fromString(dailyData.keys()[i])));
 		calendar->setDateTextFormat(QDate::fromString(dailyData.keys()[i]), fmt);
 	}
@@ -162,26 +228,27 @@ void MainWindow::startTime_dateChanged(const QDate &date)
 {
 	calendar->setMinimumDate(date);
 	endTime->setDate(calendar->maximumDate());
-	updateInfoFrame(QDateTime(startTime->date(), QTime(0,0,0)).toSecsSinceEpoch(),QDateTime(endTime->date(), QTime(0,0,0)).toSecsSinceEpoch());
+	updateInfoFrame(QDateTime(startTime->date(), QTime(0,0,0)).toSecsSinceEpoch(),
+					QDateTime(endTime->date(), QTime(0,0,0)).toSecsSinceEpoch());
 }
 
 void MainWindow::endTime_dateChanged(const QDate &date)
 {
 	calendar->setMaximumDate(date);
 	startTime->setDate(calendar->minimumDate());
-	updateInfoFrame(QDateTime(startTime->date(), QTime(0,0,0)).toSecsSinceEpoch(),QDateTime(endTime->date(), QTime(0,0,0)).toSecsSinceEpoch());
+	updateInfoFrame(QDateTime(startTime->date(), QTime(0,0,0)).toSecsSinceEpoch()
+					,QDateTime(endTime->date(), QTime(0,0,0)).toSecsSinceEpoch());
 }
 
 QString MainWindow::printTool(QDate date)
 {
 	QString commits;
-	QVector<GitStatistics::Data> data = gs->getPeriodlyData(date, date.addDays(1));
+	QVector<GitStatistics::Data> data = gsMap[ui->cbFileName->currentText()]->getPeriodlyData(date, date.addDays(1));
 	for (int i = 0; i < data.size(); ++i) {
 		commits = commits + data[i].commitid + data[i].author + data[i].message + "\n";
 	}
 	return commits;
 }
-
 
 void MainWindow::createFrameDate()
 {
@@ -195,9 +262,6 @@ void MainWindow::createFrameDate()
 	ui->frameDate->layout()->addWidget(monthCombo);
 	ui->frameDate->layout()->addWidget(startTime);
 	ui->frameDate->layout()->addWidget(endTime);
-	for (int i = 1; i < 13; ++i) {
-		monthCombo->addItem(getMonthName(i));
-	}
 }
 
 void MainWindow::createInfoLabels()
@@ -220,18 +284,37 @@ void MainWindow::createInfoLabels()
 	ui->infoFrame->layout()->addWidget(labelFriday);
 }
 
+void MainWindow::createInfoLabels_2()
+{
+	labelFileName_2 = new QLabel();
+	labelCount_2 = new QLabel();
+	labelMean_2 = new QLabel();
+	labelWeekDayMean_2 = new QLabel();
+	labelFreeDays_2 = new QLabel();
+	labelWeakDaysFree_2 = new QLabel();
+	labelMonday_2 = new QLabel();
+	labelFriday_2 = new QLabel();
+	ui->infoFrame_2->layout()->addWidget(labelFileName_2);
+	ui->infoFrame_2->layout()->addWidget(labelCount_2);
+	ui->infoFrame_2->layout()->addWidget(labelMean_2);
+	ui->infoFrame_2->layout()->addWidget(labelWeekDayMean_2);
+	ui->infoFrame_2->layout()->addWidget(labelFreeDays_2);
+	ui->infoFrame_2->layout()->addWidget(labelWeakDaysFree_2);
+	ui->infoFrame_2->layout()->addWidget(labelMonday_2);
+	ui->infoFrame_2->layout()->addWidget(labelFriday_2);
+}
+
 void MainWindow::setChartDatas(QString chosen, QVector<GitStatistics::Data> datas)
 {
 	int row, col;
-	row = graphicCounter / 2;
-	col = graphicCounter % 2;
+	row = graphicCounter[ui->cbFileName->currentText()] / 2;
+	col = graphicCounter[ui->cbFileName->currentText()] % 2;
 	QFrame *f = new QFrame();
 	f->setLayout(new QVBoxLayout);
 	DrawChart *c = new DrawChart(chosen, datas);
 	f->layout()->addWidget(c);
-	cchartL->addWidget(f, row ,col);
-	graphicCounter++;
-
+	mapLayout[ui->cbFileName->currentText()]->addWidget(f, row ,col);
+	graphicCounter[ui->cbFileName->currentText()]++;
 }
 
 void MainWindow::clearFrame(QWidget *widget)
@@ -245,28 +328,11 @@ void MainWindow::clearFrame(QWidget *widget)
 	}
 }
 
-QString MainWindow::getMonthName(int monthNumber)
-{
-	QStringList monthNames = {"Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"};
-	return monthNames[monthNumber-1];
-}
-
-int MainWindow::getMonthNumber(QString monthName)
-{
-	QStringList monthNames = {"Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"};
-	for (int i = 0; i < monthNames.size(); ++i) {
-		if (monthName == monthNames[i])
-			return i+1;
-	}
-	return 1;
-}
-
 QMap<int64_t, int> MainWindow::setLineSeries()
 {
-	QMap<QString, int> dailyData = gs->calculateDay(QDateTime(startTime->date(), QTime(0,0,0)).toSecsSinceEpoch(),
-													QDateTime(endTime->date(), QTime(0,0,0)).toSecsSinceEpoch()+24*60*60).dailyCommit;
+	QMap<QString, int> dailyData = gsMap[ui->cbFileName->currentText()]->calculateDay(QDateTime(startTime->date(), QTime(0,0,0)).toSecsSinceEpoch(),
+													QDateTime(endTime->date().addDays(1), QTime(0,0,0)).toSecsSinceEpoch()).dailyCommit;
 	QMap<int64_t, int> epochDailyData;
-	QList<int64_t> list;
 	for (int i = 0; i < dailyData.size(); ++i) {
 		epochDailyData[QDateTime(QDate::fromString(dailyData.keys()[i])).toMSecsSinceEpoch()] = dailyData[dailyData.keys()[i]];
 	}
@@ -275,12 +341,14 @@ QMap<int64_t, int> MainWindow::setLineSeries()
 
 void MainWindow::on_radioButton_clicked()
 {
-	ui->stackedWidget->setCurrentIndex(2);
+	ui->stackedWidget->setCurrentIndex(1);
 	ui->frameDate->show();
+	ui->infoFrame_2->hide();
 	startTime->show();
 	endTime->show();
 	yearCombo->hide();
 	monthCombo->hide();
+	ui->cbFileName_2->hide();
 	chosen = "lineChart";
 }
 
@@ -330,4 +398,54 @@ void MainWindow::drawLineChart()
 	chartView->setRenderHint(QPainter::Antialiasing);
 	clearFrame(ui->frameLineChart);
 	ui->frameLineChart->layout()->addWidget(chartView);
+}
+
+void MainWindow::on_pbFilePath_clicked()
+{
+	 QString dir = QFileDialog::getExistingDirectory(this, tr("Open Directory"),
+											directory.absolutePath(),
+											QFileDialog::ShowDirsOnly
+											| QFileDialog::DontResolveSymlinks);
+	directory.setPath(dir);
+	QStringList texts = directory.entryList(QStringList() << "*.txt" << "*.txt",QDir::Files);
+	ui->cbFileName->clear();
+	ui->cbFileName->addItems(texts);
+}
+
+void MainWindow::updateMonthCombo()
+{
+	QMap<QString, int> dailyCommit = gsMap[ui->cbFileName->currentText()]->calculateDay(gsMap[ui->cbFileName->currentText()]->getBeginTime()
+																						, gsMap[ui->cbFileName->currentText()]->getEndTime()+24*60*60).dailyCommit;
+	QMap<QString, int> month;
+	monthCombo->clear();
+	for (int i = 0; i < dailyCommit.size(); ++i) {
+		QStringList pieces = dailyCommit.keys()[i].split(" ");
+		if(yearCombo->currentText() == pieces[3]){
+			month[pieces[1]]++;
+		}
+	}
+	monthCombo->addItems(month.keys());
+}
+
+void MainWindow::on_rbCompare_clicked()
+{
+	ui->stackedWidget->setCurrentIndex(index[ui->cbFileName->currentText()]);
+	ui->cbFileName_2->clear();
+	QStringList texts = directory.entryList(QStringList() << "*.txt" << "*.txt",QDir::Files);
+	ui->cbFileName_2->addItems(texts);
+	ui->cbFileName_2->show();
+	ui->frameDate->hide();
+	startTime->hide();
+	endTime->hide();
+	yearCombo->hide();
+	monthCombo->hide();
+	this->chosen = "compare";
+}
+
+void MainWindow::on_cbFileName_2_currentIndexChanged(const QString &arg1)
+{
+	if (ui->cbFileName_2->count() != 0) {
+		if (gsMap.count(arg1) == 0)
+			gsMap[arg1] = new GitStatistics(directory.absolutePath() + "/" + arg1);
+	}
 }

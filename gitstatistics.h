@@ -31,8 +31,6 @@ public:
 		QMap<QString, int> dailyCommit;
 	};
 	QVector<Data> getStatData();
-	QVector<Data> getYearlyData(int year);
-	QVector<Data> getMontlyData(int year, int month);
 	QVector<Data> getPeriodlyData(QDate beginTime, QDate endTime);
 	QStringList getAllYears();
 	int64_t getEndTime();

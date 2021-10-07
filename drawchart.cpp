@@ -9,7 +9,7 @@ DrawChart::DrawChart(QString chosen, QVector<GitStatistics::Data> datas, QWidget
         dataDates.push_back(QDateTime::fromSecsSinceEpoch(datas[i].epoch));
     }
     if (!dataDates.isEmpty())
-        graphicName = QString::number(dataDates[0].date().year());
+        graphicName = QString::number(dataDates[0].date().year()) + "/" +datas[0].author;
     else
         graphicName = "Empty";
 
@@ -19,16 +19,8 @@ DrawChart::DrawChart(QString chosen, QVector<GitStatistics::Data> datas, QWidget
     if (chosen.count("month") > 0){
         QStringList monthName = chosen.split( "/" );
         drawMonthly(weekly, monthName[1]);
-    }else if (chosen == "year" || chosen == "allyear"){
+    }else if (chosen == "year" || chosen == "allyear" || chosen == "compare"){
         drawYearly(getMonthlyDataStatistics(weekly));
-    }else if (chosen == "period")
-    {
-        QHash<QString, float> dailyCommit;
-        for (int i = 0; i < datas.size(); ++i) {
-            dailyCommit[getMonthName(QDateTime::fromSecsSinceEpoch(datas[i].epoch).date().month())]++;
-        }
-        qDebug() << dailyCommit << datas.size();
-        drawYearly(dailyCommit);
     }
     setMaximumWidth(700);
     setMaximumHeight(700);
@@ -78,12 +70,12 @@ void DrawChart::drawMonthly( QHash <QString, float> weekly, QString monthName)
 
 QColor DrawChart::randColor()
 {
-    return QColor(randInt(0,180),randInt(0,180),randInt(0,180));
+    return QColor(randInt(50,200),randInt(50,200),randInt(50,200));
 }
 
 QString DrawChart::getMonthName(int monthNumber)
 {
-    QStringList monthNames = {"Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"};
+    QStringList monthNames = {"Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"};
     return monthNames[monthNumber-1];
 }
 
