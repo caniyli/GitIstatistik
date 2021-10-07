@@ -23,3 +23,15 @@ QT += charts
 Satırını ekledikten sonra projeyi kullanabilirsiniz
 
 ## 3. Nasıl Kullanırım
+
+![Image of Menu](https://github.com/caniyli/GitIstatistik/blob/main/images/Menu.png)
+
+Yukarıda görünen menünün en üstünde combo box ile okunacak dosyanın yolunu ve adını seçiyoruz. Bu işlem sonunda istatisklerimizi elde etmiş oluyoruz ve bilgiler karşımıza geliyor.
+
+Daha sonra menü üzerinden yaptığımız seçimlerle karşımıza grafikler ve görsel analiz araçları geliyor. Örneğin yıllık bir pasta grafiği:
+
+![Image of PieChart](https://github.com/caniyli/GitIstatistik/blob/main/images/YearlyChart.png)
+
+Eğer 2 Tarih arası verileri göster seçeneğini işaretlersek karşımıza bir takvim ekranı çıkıyor ve gün gün atılan commit bilgileriniinceleyebiliyoruz.
+
+![Image of Calendar](https://github.com/caniyli/GitIstatistik/blob/main/images/Calendar.png)
