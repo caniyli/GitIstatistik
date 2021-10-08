@@ -22,7 +22,7 @@ QT += charts
 
 Satırını ekledikten sonra projeyi kullanabilirsiniz
 
-## 3. Nasıl Kullanırım
+## 3. Nasıl Kullanırım?
 
 ![Image of Menu](https://github.com/caniyli/GitIstatistik/blob/main/images/Menu.png)
 
