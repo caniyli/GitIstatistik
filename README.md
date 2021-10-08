@@ -17,13 +17,12 @@ git clone "https://github.com/caniyli/GitIstatistik.git"
 
 ### 2.2 Projeyi Derleme
 
-Git İstatistik Projesi Qt ile hazırlanmıştır. Qmake ve Cmake ile derlenebilir. Cmake ile derlemek için Qt kütühanelerini vermeniz gerekmektedir.
-
-Qmake ile derlemek için, açılan standart bir QWidget projesinin .pro uzantılı dosyasına source ve header dosyalarını ekleyip, son olarak QChart kütüphanesini kullanabilmek için 
-.pro uzantılı dosyanın en üstüne;
-
+Git İstatistik Projesi Qt ile hazırlanmıştır
 ```
-QT += charts
+mkdir Build
+cd Build
+qmake ../DonutChart.pro -spec linux-g++ CONFIG+=debug CONFIG+=qml_debug
+make -j8
 ```
 
 Satırını ekledikten sonra projeyi kullanabilirsiniz
