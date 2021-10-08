@@ -34,6 +34,11 @@ Projeyi kullanabilmek için girdi değerlerini bir .txt dosyasında tutmanız ge
 ```
 cd $PROJECT_PATH;  git --no-pager log --author="$USERNAME" --date=raw --pretty=format:"%h%x09%an%x09%ad%x09%s" 2>&1 > $TARGET/"$USERNAME".txt
 ```
+Çalıştırmak için;
+
+```
+./DonutChart
+```
 
 ![Image of Menu](https://github.com/caniyli/GitIstatistik/blob/main/images/Menu.png)
 
